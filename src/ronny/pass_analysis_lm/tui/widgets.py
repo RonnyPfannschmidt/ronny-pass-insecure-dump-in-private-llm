@@ -91,22 +91,29 @@ class EntryContentViewer(RichLog):
 
     DEFAULT_CSS_PATH = Path(__file__).parent / "styles.tcss"
 
-    def __init__(self) -> None:
+    def __init__(self, tree: EntryTree | None = None) -> None:
         super().__init__()
+        self._tree = tree
         self._content_cache: dict[str, str] = {}
         self._revealed: dict[str, bool] = {}
-        self._current_entry: str | None = None
+
+    def _get_current_name(self) -> str | None:
+        if self._tree is None:
+            return None
+        node = self._tree.cursor_node
+        if node is None or node.children:
+            return None
+        return self._tree._node_path(node)
 
     def show_entry(self, name: str, content: str) -> None:
         self._content_cache[name] = content
-        self._current_entry = name
         revealed = self._revealed.get(name, False)
         self._masked_render(name, content, revealed)
 
     def toggle_reveal(self) -> None:
-        if self._current_entry is None:
+        name = self._get_current_name()
+        if name is None:
             return
-        name = self._current_entry
         self._revealed[name] = not self._revealed.get(name, False)
         content = self._content_cache.get(name, "")
         self._masked_render(name, content, self._revealed[name])

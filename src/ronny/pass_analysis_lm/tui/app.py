@@ -79,14 +79,14 @@ class PassAnalysisApp(App[None]):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield EntryTree(self.store_dir or get_store_dir())
+        self._tree = EntryTree(self.store_dir or get_store_dir())
+        yield self._tree
         with Container(id="right-panel"):
-            yield EntryContentViewer()
+            yield EntryContentViewer(self._tree)
             yield ResultsPanel()
         yield Footer()
 
     def on_mount(self) -> None:
-        self._tree = self.query_one(EntryTree)
         self._content_viewer = self.query_one(EntryContentViewer)
         self._results = self.query_one(ResultsPanel)
 
@@ -101,7 +101,6 @@ class PassAnalysisApp(App[None]):
 
     def _load_entry(self, name: str) -> None:
         if name in self._content_viewer._content_cache:
-            self._content_viewer._current_entry = name
             revealed = self._content_viewer._revealed.get(name, False)
             self._content_viewer._masked_render(
                 name, self._content_viewer._content_cache[name], revealed
