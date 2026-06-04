@@ -8,6 +8,7 @@ from pathlib import Path
 import click
 from rich.console import Console
 from rich.panel import Panel
+from rich.progress import Progress
 from rich.table import Table
 
 from ronny.pass_analysis_lm.config import (
@@ -19,7 +20,12 @@ from ronny.pass_analysis_lm.config import (
     write_example_config,
 )
 from ronny.pass_analysis_lm.secrets import delete_api_key, set_api_key
-from ronny.pass_analysis_lm.store import get_store_dir, load_entries
+from ronny.pass_analysis_lm.store import (
+    PassEntry,
+    get_store_dir,
+    list_entry_names,
+    show_entry,
+)
 
 console = Console()
 
@@ -102,16 +108,25 @@ async def _run(store_dir: Path, target: ResolvedTarget) -> None:
     from ronny.pass_analysis_lm.analysis import analyse_entry, make_agent  # noqa: PLC0415
 
     agent = make_agent(target)
-
     console.print(f"[bold]Store:[/bold] {store_dir}")
-    entries = load_entries(store_dir)
-    console.print(f"Found [bold]{len(entries)}[/bold] entries.\n")
 
-    for entry in entries:
-        console.print(f"[dim]Analysing {entry.name}…[/dim]")
-        plaintext = entry.plaintext.get_secret_value()
-        findings = await analyse_entry(entry.name, plaintext, agent)
-        console.print(Panel(findings, title=f"[cyan]{entry.name}[/cyan]"))
+    names = list_entry_names(store_dir)
+    console.print(f"Found [bold]{len(names)}[/bold] entries.\n")
+
+    entries: list[PassEntry] = []
+    with Progress(console=console) as progress:
+        task = progress.add_task("Decrypting entries…", total=len(names))
+        for name in names:
+            entries.append(PassEntry(name=name, plaintext=show_entry(name)))
+            progress.advance(task)
+
+    with Progress(console=console) as progress:
+        task = progress.add_task("Analysing entries…", total=len(entries))
+        for entry in entries:
+            plaintext = entry.plaintext.get_secret_value()
+            findings = await analyse_entry(entry.name, plaintext, agent)
+            console.print(Panel(findings, title=f"[cyan]{entry.name}[/cyan]"))
+            progress.advance(task)
 
 
 # ---------------------------------------------------------------------------
