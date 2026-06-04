@@ -42,12 +42,7 @@ class EntryTree(Tree[str]):
 
     ALLOW_SELECT = True
 
-    DEFAULT_CSS = """
-    EntryTree {
-        height: 100%;
-        border: round blue;
-    }
-    """
+    DEFAULT_CSS_PATH = Path(__file__).parent / "styles.tcss"
 
     def __init__(self, store_dir: Path) -> None:
         super().__init__("Password Store", id="entries")
@@ -94,13 +89,7 @@ class EntryTree(Tree[str]):
 class EntryContentViewer(RichLog):
     """Shows the content of the selected entry, masked by default."""
 
-    DEFAULT_CSS = """
-    EntryContentViewer {
-        height: 50%;
-        border: round blue;
-        padding: 1;
-    }
-    """
+    DEFAULT_CSS_PATH = Path(__file__).parent / "styles.tcss"
 
     def __init__(self) -> None:
         super().__init__()
@@ -143,13 +132,7 @@ class EntryContentViewer(RichLog):
 class ResultsPanel(RichLog):
     """Displays LLM analysis results."""
 
-    DEFAULT_CSS = """
-    ResultsPanel {
-        height: 50%;
-        border: round green;
-        padding: 1;
-    }
-    """
+    DEFAULT_CSS_PATH = Path(__file__).parent / "styles.tcss"
 
     def clear_results(self) -> None:
         self.clear()

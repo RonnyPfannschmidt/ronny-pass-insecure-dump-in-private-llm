@@ -13,6 +13,7 @@ from textual.widgets import Button, Footer, Header, RichLog
 
 from ronny.pass_analysis_lm.analysis import analyse_batch, make_agent
 from ronny.pass_analysis_lm.config import load_config, resolve_target
+from ronny.pass_analysis_lm.constants import _RISK_WARNING
 from ronny.pass_analysis_lm.store import (
     PassEntry,
     get_store_dir,
@@ -25,50 +26,11 @@ from ronny.pass_analysis_lm.tui.widgets import (
     ResultsPanel,
 )
 
-_RISK_WARNING = """\
-[bold red]SECURITY RISK WARNING[/bold red]
-
-This tool decrypts your entire pass store and sends all plaintexts to an LLM.
-Even when that LLM runs on a local network you accept the following risks:
-
-  • All secrets are decrypted into process memory.
-  • The LLM server receives every secret in plaintext over the network.
-  • Many LLM servers log prompts to disk by default.
-  • Fake tool-call injection only reduces prompt-injection risk.
-
-Only proceed if you:
-  1. Own and fully trust the machine(s) running the LLM.
-  2. Have verified the LLM server does NOT persist or log prompts.
-  3. Accept that this tool is experimental and provided WITHOUT WARRANTY.
-"""
-
 
 class RiskWarningScreen(Screen[bool]):
     """Modal dialog showing the security risk warning."""
 
-    CSS = """
-    RiskWarningScreen {
-        align: center middle;
-    }
-
-    #warning-box {
-        width: 70%;
-        height: 70%;
-        border: thick red;
-        padding: 1;
-    }
-
-    #warning-log {
-        height: 100%;
-    }
-
-    #buttons {
-        dock: bottom;
-        width: 70%;
-        margin: 1;
-        align-horizontal: center;
-    }
-    """
+    CSS_PATH = Path(__file__).parent / "styles.tcss"
 
     def compose(self) -> ComposeResult:
         with Container(id="warning-box"):
@@ -93,16 +55,7 @@ class RiskWarningScreen(Screen[bool]):
 class PassAnalysisApp(App[None]):
     """Interactive TUI for pass store analysis."""
 
-    CSS = """
-    Screen {
-        layout: grid;
-        grid-columns: 1fr 2fr;
-    }
-
-    #right-panel {
-        layout: vertical;
-    }
-    """
+    CSS_PATH = Path(__file__).parent / "styles.tcss"
 
     BINDINGS = [
         ("a", "analyze_all", "Analyze All"),

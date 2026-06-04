@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from collections.abc import Callable
+from typing import Any
 
 import click
 from rich.console import Console
@@ -19,6 +21,7 @@ from ronny.pass_analysis_lm.config import (
     resolve_target,
     write_example_config,
 )
+from ronny.pass_analysis_lm.constants import _RISK_WARNING
 from ronny.pass_analysis_lm.secrets import delete_api_key, set_api_key
 from ronny.pass_analysis_lm.store import (
     PassEntry,
@@ -29,23 +32,29 @@ from ronny.pass_analysis_lm.store import (
 
 console = Console()
 
-_RISK_WARNING = """\
-[bold red]SECURITY RISK WARNING[/bold red]
 
-This tool decrypts your entire pass store and sends all plaintexts to an LLM.
-Even when that LLM runs on a local network you accept the following risks:
-
-  • All secrets are decrypted into process memory; they may appear in swap or core dumps.
-  • The LLM server receives every secret in plaintext over the network.
-  • Many LLM servers log prompts to disk or memory by default — verify yours does not.
-  • Any misconfiguration in the LLM server could expose your secrets.
-  • Fake tool-call injection only reduces prompt-injection risk; it does not eliminate it.
-
-Only proceed if you:
-  1. Own and fully trust the machine(s) running the LLM.
-  2. Have verified the LLM server does NOT persist or log prompts.
-  3. Accept that this tool is experimental and provided WITHOUT WARRANTY.
-"""
+def common_options(f: Callable[..., Any]) -> Callable[..., Any]:
+    f = click.option(
+        "--store",
+        "store_dir",
+        type=click.Path(exists=True, file_okay=False, path_type=Path),
+        default=None,
+        help="Path to pass store.",
+    )(f)
+    f = click.option(
+        "--provider",
+        default=None,
+        metavar="NAME[/MODEL]",
+        help="Provider name from config.",
+    )(f)
+    f = click.option("--model", default=None, help="Override the model name.")(f)
+    f = click.option(
+        "--yes",
+        is_flag=True,
+        default=False,
+        help="Skip the risk confirmation prompt.",
+    )(f)
+    return f
 
 
 @click.group()
@@ -58,29 +67,7 @@ def main() -> None:
 # ---------------------------------------------------------------------------
 
 @main.command("run")
-@click.option(
-    "--store",
-    "store_dir",
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-    default=None,
-    help="Path to pass store (default: $PASSWORD_STORE_DIR or ~/.password-store).",
-)
-@click.option(
-    "--provider",
-    default=None,
-    metavar="NAME[/MODEL]",
-    help=(
-        "Provider name from config, optionally followed by '/model'. "
-        "Example: vllm-local  or  vllm-local/qwen/Qwen2.5-7B-Instruct"
-    ),
-)
-@click.option("--model", default=None, help="Override the model name.")
-@click.option(
-    "--yes",
-    is_flag=True,
-    default=False,
-    help="Skip the risk confirmation prompt.",
-)
+@common_options
 def run_cmd(store_dir: Path | None, provider: str | None, model: str | None, yes: bool) -> None:
     """Decrypt the pass store and analyse every entry with the configured LLM."""
     console.print(Panel(_RISK_WARNING, border_style="red"))
@@ -257,26 +244,7 @@ def config_delete_key(provider_name: str) -> None:
 # ---------------------------------------------------------------------------
 
 @main.command("tui")
-@click.option(
-    "--store",
-    "store_dir",
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-    default=None,
-    help="Path to pass store.",
-)
-@click.option(
-    "--provider",
-    default=None,
-    metavar="NAME[/MODEL]",
-    help="Provider name from config.",
-)
-@click.option("--model", default=None, help="Override the model name.")
-@click.option(
-    "--yes",
-    is_flag=True,
-    default=False,
-    help="Skip the risk confirmation prompt.",
-)
+@common_options
 def tui_cmd(store_dir: Path | None, provider: str | None, model: str | None, yes: bool) -> None:
     """Launch the interactive TUI for pass store analysis."""
     try:

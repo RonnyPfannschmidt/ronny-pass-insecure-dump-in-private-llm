@@ -1,0 +1,47 @@
+RiskWarningScreen {
+    align: center middle;
+}
+
+#warning-box {
+    width: 70%;
+    height: 70%;
+    border: thick red;
+    padding: 1;
+}
+
+#warning-log {
+    height: 100%;
+}
+
+#buttons {
+    dock: bottom;
+    width: 70%;
+    margin: 1;
+    align-horizontal: center;
+}
+
+Screen {
+    layout: grid;
+    grid-columns: 1fr 2fr;
+}
+
+#right-panel {
+    layout: vertical;
+}
+
+EntryTree {
+    height: 100%;
+    border: round blue;
+}
+
+EntryContentViewer {
+    height: 50%;
+    border: round blue;
+    padding: 1;
+}
+
+ResultsPanel {
+    height: 50%;
+    border: round green;
+    padding: 1;
+}
