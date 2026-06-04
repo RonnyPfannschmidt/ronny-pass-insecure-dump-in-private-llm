@@ -11,26 +11,27 @@ from textual.widgets._tree import TreeNode
 
 
 def _mask(value: str) -> str:
-    return "•" * len(value)
+    return "•" * max(len(value), 1)
 
 
 def _parse_entry_content(content: str) -> list[tuple[str, str]]:
     """Parse entry content into (label, value) pairs.
 
     First line is the password. Subsequent lines are key: value pairs.
+    Blank lines are preserved as-is. Whitespace is not stripped from values.
     """
-    lines = content.strip().split("\n")
+    lines = content.splitlines()
     if not lines:
         return []
 
-    result: list[tuple[str, str]] = [("password", lines[0].strip())]
+    result: list[tuple[str, str]] = [("password", lines[0])]
     for line in lines[1:]:
-        line = line.strip()
         if not line:
+            result.append(("", ""))
             continue
-        match = re.match(r"^([^:]+):\s*(.*)$", line)
+        match = re.match(r"^([^:]+):\s?(.*)$", line)
         if match:
-            result.append((match.group(1).strip(), match.group(2).strip()))
+            result.append((match.group(1).strip(), match.group(2)))
         else:
             result.append((line, ""))
     return result
@@ -130,6 +131,9 @@ class EntryContentViewer(RichLog):
 
         self.write(Text(f"=== {name} ===", style="bold cyan"))
         for label, value in pairs:
+            if label == "" and value == "":
+                self.write("")
+                continue
             display = value if revealed else _mask(value)
             self.write(Text(f"{label}: {display}"))
         if not revealed:
