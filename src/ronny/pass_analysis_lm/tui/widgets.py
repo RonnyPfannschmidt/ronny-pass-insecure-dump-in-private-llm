@@ -45,11 +45,12 @@ class EntryTree(Tree[str]):
     DEFAULT_CSS_PATH = Path(__file__).parent / "styles.tcss"
 
     def __init__(self, store_dir: Path) -> None:
-        super().__init__("Password Store", id="entries")
+        super().__init__("", id="entries")
         self.store_dir = store_dir
 
     def on_mount(self) -> None:
         self._populate()
+        self.root.expand()
 
     def _populate(self) -> None:
         root = self.root
