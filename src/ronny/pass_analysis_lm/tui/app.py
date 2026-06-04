@@ -101,6 +101,7 @@ class PassAnalysisApp(App[None]):
 
     def _load_entry(self, name: str) -> None:
         if name in self._content_viewer._content_cache:
+            self._content_viewer._current_entry = name
             revealed = self._content_viewer._revealed.get(name, False)
             self._content_viewer._masked_render(
                 name, self._content_viewer._content_cache[name], revealed
