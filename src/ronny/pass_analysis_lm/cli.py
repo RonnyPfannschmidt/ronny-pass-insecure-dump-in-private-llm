@@ -250,3 +250,46 @@ def config_delete_key(provider_name: str) -> None:
     except KeyError as exc:
         raise click.ClickException(str(exc)) from exc
     console.print(f"[green]Key removed from keyring for provider:[/green] {provider_name}")
+
+
+# ---------------------------------------------------------------------------
+# tui
+# ---------------------------------------------------------------------------
+
+@main.command("tui")
+@click.option(
+    "--store",
+    "store_dir",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Path to pass store.",
+)
+@click.option(
+    "--provider",
+    default=None,
+    metavar="NAME[/MODEL]",
+    help="Provider name from config.",
+)
+@click.option("--model", default=None, help="Override the model name.")
+@click.option(
+    "--yes",
+    is_flag=True,
+    default=False,
+    help="Skip the risk confirmation prompt.",
+)
+def tui_cmd(store_dir: Path | None, provider: str | None, model: str | None, yes: bool) -> None:
+    """Launch the interactive TUI for pass store analysis."""
+    try:
+        from ronny.pass_analysis_lm.tui import PassAnalysisApp
+    except ImportError:
+        raise click.ClickException(
+            "textual not installed. Install with: uv sync --extra tui"
+        )
+
+    app = PassAnalysisApp(
+        store_dir=store_dir,
+        provider=provider,
+        model=model,
+        yes=yes,
+    )
+    app.run()
