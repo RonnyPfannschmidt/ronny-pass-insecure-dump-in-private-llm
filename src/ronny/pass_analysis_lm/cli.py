@@ -104,8 +104,27 @@ def run_cmd(store_dir: Path | None, provider: str | None, model: str | None, yes
     asyncio.run(_run(resolved_store, target))
 
 
+_DECRYPT_CONCURRENCY = 8
+_BATCH_SIZE = 10
+
+
+async def _decrypt(
+    name: str,
+    sem: asyncio.Semaphore,
+    progress: Progress,
+    task: object,
+) -> PassEntry:
+    async with sem:
+        entry = PassEntry(name=name, plaintext=await show_entry(name))
+        progress.advance(task)
+        return entry
+
+
 async def _run(store_dir: Path, target: ResolvedTarget) -> None:
-    from ronny.pass_analysis_lm.analysis import analyse_entry, make_agent  # noqa: PLC0415
+    from ronny.pass_analysis_lm.analysis import (  # noqa: PLC0415 E402
+        analyse_batch,
+        make_agent,
+    )
 
     agent = make_agent(target)
     console.print(f"[bold]Store:[/bold] {store_dir}")
@@ -113,20 +132,21 @@ async def _run(store_dir: Path, target: ResolvedTarget) -> None:
     names = list_entry_names(store_dir)
     console.print(f"Found [bold]{len(names)}[/bold] entries.\n")
 
-    entries: list[PassEntry] = []
+    sem = asyncio.Semaphore(_DECRYPT_CONCURRENCY)
     with Progress(console=console) as progress:
         task = progress.add_task("Decrypting entries…", total=len(names))
-        for name in names:
-            entries.append(PassEntry(name=name, plaintext=show_entry(name)))
-            progress.advance(task)
+        entries: list[PassEntry] = list(
+            await asyncio.gather(*[_decrypt(n, sem, progress, task) for n in names])
+        )
 
     with Progress(console=console) as progress:
         task = progress.add_task("Analysing entries…", total=len(entries))
-        for entry in entries:
-            plaintext = entry.plaintext.get_secret_value()
-            findings = await analyse_entry(entry.name, plaintext, agent)
-            console.print(Panel(findings, title=f"[cyan]{entry.name}[/cyan]"))
-            progress.advance(task)
+        for i in range(0, len(entries), _BATCH_SIZE):
+            batch = entries[i : i + _BATCH_SIZE]
+            pairs = [(e.name, e.plaintext.get_secret_value()) for e in batch]
+            for ef in await analyse_batch(pairs, agent):
+                console.print(Panel(ef.findings, title=f"[cyan]{ef.entry_name}[/cyan]"))
+            progress.advance(task, len(batch))
 
 
 # ---------------------------------------------------------------------------

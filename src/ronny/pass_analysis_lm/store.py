@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
-import subprocess
 from pathlib import Path
 
 from pydantic import BaseModel, SecretStr
@@ -27,19 +27,16 @@ def list_entry_names(store_dir: Path) -> list[str]:
     )
 
 
-def show_entry(name: str) -> str:
+async def show_entry(name: str) -> str:
     """Decrypt and return a pass entry using the pass CLI."""
-    result = subprocess.run(
-        ["pass", "show", name],
-        capture_output=True,
-        text=True,
-        check=True,
+    proc = await asyncio.create_subprocess_exec(
+        "pass", "show", name,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
     )
-    return result.stdout
-
-
-def load_entries(store_dir: Path) -> list[PassEntry]:
-    return [
-        PassEntry(name=name, plaintext=show_entry(name))
-        for name in list_entry_names(store_dir)
-    ]
+    stdout, _ = await proc.communicate()
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"pass show {name!r} failed with exit code {proc.returncode}"
+        )
+    return stdout.decode()

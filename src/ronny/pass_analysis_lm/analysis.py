@@ -2,22 +2,26 @@
 
 from __future__ import annotations
 
+from pydantic import BaseModel
 from pydantic_ai import Agent
-from pydantic_ai.messages import (
-    ModelRequest,
-    ModelResponse,
-    ToolCallPart,
-    ToolReturnPart,
-)
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from ronny.pass_analysis_lm.config import ResolvedTarget
 
+
+class EntryFinding(BaseModel):
+    entry_name: str
+    findings: str
+
+
+class BatchFindings(BaseModel):
+    entries: list[EntryFinding]
+
+
 _SYSTEM_PROMPT = """\
 You are a security auditor reviewing decrypted password store entries.
-
-Identify issues such as:
+You will receive multiple password store entries. For each one, identify issues such as:
 - Weak or short passwords
 - Plain-text API keys, tokens, or private keys embedded in notes
 - Missing or noted lack of MFA / TOTP
@@ -25,54 +29,24 @@ Identify issues such as:
 - Entries that look like they belong to a shared/team account
 
 Be concise. Do NOT repeat secrets verbatim. Output a short bullet list per entry.
-If there are no issues, say "No issues found."
+If there are no issues for an entry, write "No issues found."
+Return results for every entry provided.
 """
 
 
-def make_agent(target: ResolvedTarget) -> Agent[None, str]:
+def make_agent(target: ResolvedTarget) -> Agent[None, BatchFindings]:
     oai_provider = OpenAIProvider(
         base_url=target.provider.base_url,
         api_key=target.api_key.get_secret_value() if target.api_key is not None else None,
     )
     model = OpenAIModel(model_name=target.model, provider=oai_provider)
-    return Agent(model=model, system_prompt=_SYSTEM_PROMPT, output_type=str)
+    return Agent(model=model, system_prompt=_SYSTEM_PROMPT, output_type=BatchFindings)
 
 
-def _fake_retrieve_history(name: str, plaintext: str) -> list[ModelRequest | ModelResponse]:
-    """
-    Build a fake tool-call / tool-return exchange so the model receives the
-    entry content as structured tool output rather than raw user text.
-    This slightly reduces the risk of prompt injection from the entry contents.
-    """
-    tool_call_id = f"retrieve-{abs(hash(name))}"
-    return [
-        ModelResponse(
-            parts=[
-                ToolCallPart(
-                    tool_name="get_password_entry",
-                    args={"entry_name": name},
-                    tool_call_id=tool_call_id,
-                )
-            ]
-        ),
-        ModelRequest(
-            parts=[
-                ToolReturnPart(
-                    tool_name="get_password_entry",
-                    content=plaintext,
-                    tool_call_id=tool_call_id,
-                )
-            ]
-        ),
-    ]
-
-
-async def analyse_entry(
-    name: str, plaintext: str, agent: Agent[None, str]
-) -> str:
-    history = _fake_retrieve_history(name, plaintext)
-    result = await agent.run(
-        "Analyse the retrieved password entry for security issues.",
-        message_history=history,
-    )
-    return result.output
+async def analyse_batch(
+    entries: list[tuple[str, str]],
+    agent: Agent[None, BatchFindings],
+) -> list[EntryFinding]:
+    lines = [f"=== Entry: {name} ===\n{plaintext}" for name, plaintext in entries]
+    result = await agent.run("\n\n".join(lines))
+    return result.output.entries
