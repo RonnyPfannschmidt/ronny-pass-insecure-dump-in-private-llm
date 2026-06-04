@@ -77,8 +77,6 @@ def main() -> None:
 )
 def run_cmd(store_dir: Path | None, provider: str | None, model: str | None, yes: bool) -> None:
     """Decrypt the pass store and analyse every entry with the configured LLM."""
-    from ronny.pass_analysis_lm.analysis import make_agent, analyse_entry  # noqa: PLC0415
-
     console.print(Panel(_RISK_WARNING, border_style="red"))
 
     if not yes:
@@ -101,6 +99,8 @@ def run_cmd(store_dir: Path | None, provider: str | None, model: str | None, yes
 
 
 async def _run(store_dir: Path, target: ResolvedTarget) -> None:
+    from ronny.pass_analysis_lm.analysis import analyse_entry, make_agent  # noqa: PLC0415
+
     agent = make_agent(target)
 
     console.print(f"[bold]Store:[/bold] {store_dir}")
@@ -109,7 +109,8 @@ async def _run(store_dir: Path, target: ResolvedTarget) -> None:
 
     for entry in entries:
         console.print(f"[dim]Analysing {entry.name}…[/dim]")
-        findings = await analyse_entry(entry.name, entry.plaintext, agent)
+        plaintext = entry.plaintext.get_secret_value()
+        findings = await analyse_entry(entry.name, plaintext, agent)
         console.print(Panel(findings, title=f"[cyan]{entry.name}[/cyan]"))
 
 

@@ -32,7 +32,7 @@ If there are no issues, say "No issues found."
 def make_agent(target: ResolvedTarget) -> Agent[None, str]:
     oai_provider = OpenAIProvider(
         base_url=target.provider.base_url,
-        api_key=target.api_key,
+        api_key=target.api_key.get_secret_value() if target.api_key is not None else None,
     )
     model = OpenAIModel(model_name=target.model, provider=oai_provider)
     return Agent(model=model, system_prompt=_SYSTEM_PROMPT, output_type=str)

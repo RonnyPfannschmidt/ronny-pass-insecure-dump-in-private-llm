@@ -8,7 +8,7 @@ from pathlib import Path
 
 import httpx
 import platformdirs
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 from ronny.pass_analysis_lm.secrets import get_api_key
 
@@ -53,7 +53,7 @@ models = ["gpt-4o", "gpt-4o-mini", "o1-mini"]
 
 class ProviderConfig(BaseModel):
     base_url: str
-    api_key: str = "none"
+    api_key: SecretStr | None = None
     default_model: str
     models: list[str] = Field(default_factory=list)
 
@@ -68,7 +68,7 @@ class ResolvedTarget:
     provider_name: str
     provider: ProviderConfig
     model: str
-    api_key: str  # resolved from keyring, falling back to provider.api_key
+    api_key: SecretStr | None
 
 
 def parse_provider_spec(
@@ -113,9 +113,12 @@ def resolve_target(
 
 async def fetch_models(target: ResolvedTarget) -> list[str]:
     """Fetch available model IDs from the provider's /models endpoint."""
+    headers = {}
+    if target.api_key is not None:
+        headers["Authorization"] = f"Bearer {target.api_key.get_secret_value()}"
     async with httpx.AsyncClient(
         base_url=target.provider.base_url,
-        headers={"Authorization": f"Bearer {target.api_key}"},
+        headers=headers,
         timeout=10.0,
     ) as client:
         response = await client.get("/models")

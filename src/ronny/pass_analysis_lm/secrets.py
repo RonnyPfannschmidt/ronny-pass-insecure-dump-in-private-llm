@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import keyring
+from pydantic import SecretStr
 
 _SERVICE = "pass-analysis-lm"
 
 
-def get_api_key(provider_name: str, config_value: str) -> str:
+def get_api_key(provider_name: str, config_value: SecretStr | None) -> SecretStr | None:
     """Return the keyring-stored key for provider_name, or config_value if none is stored."""
     stored = keyring.get_password(_SERVICE, provider_name)
-    return stored if stored is not None else config_value
+    if stored is not None:
+        return SecretStr(stored)
+    return config_value
 
 
 def set_api_key(provider_name: str, api_key: str) -> None:
