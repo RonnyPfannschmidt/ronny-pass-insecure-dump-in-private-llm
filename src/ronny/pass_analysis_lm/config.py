@@ -27,15 +27,15 @@ default_provider = "vllm-local"
 # Prefer storing real keys in the system keyring instead:
 #   pass-analysis-lm config set-key <provider>
 # default_model is required; models is an optional pinned list for reference.
-# Select at runtime with:  --provider vllm-local/qwen/Qwen2.5-72B-Instruct
+# Select at runtime with:  --provider vllm-local/Qwen2.5-72B-Instruct
 
 [providers.vllm-local]
 base_url = "http://192.168.1.100:8000/v1"
 api_key = "none"
-default_model = "qwen/Qwen2.5-72B-Instruct"
+default_model = "Qwen2.5-72B-Instruct"
 models = [
-  "qwen/Qwen2.5-72B-Instruct",
-  "qwen/Qwen2.5-7B-Instruct",
+  "Qwen2.5-72B-Instruct",
+  "Qwen2.5-7B-Instruct",
 ]
 
 [providers.ollama]
@@ -71,12 +71,10 @@ class ResolvedTarget:
     api_key: str  # resolved from keyring, falling back to provider.api_key
 
 
-def parse_provider_spec(spec: str, config: AppConfig, model_override: str | None) -> ResolvedTarget:
-    """
-    Parse a provider spec of the form 'name' or 'name/model/path'.
-    The provider name is everything before the first '/'; the rest is the model name
-    (which may itself contain '/', e.g. 'vllm-local/qwen/Qwen2.5-72B-Instruct').
-    """
+def parse_provider_spec(
+    spec: str, config: AppConfig, model_override: str | None
+) -> ResolvedTarget:
+    """Parse 'name' or 'name/model' — the slash separates provider from model."""
     if "/" in spec:
         provider_name, model_from_spec = spec.split("/", 1)
     else:
@@ -85,12 +83,16 @@ def parse_provider_spec(spec: str, config: AppConfig, model_override: str | None
 
     if provider_name not in config.providers:
         available = ", ".join(config.providers) or "(none configured)"
-        raise ValueError(f"Provider {provider_name!r} not found in config. Available: {available}")
+        raise ValueError(
+            f"Provider {provider_name!r} not found in config. Available: {available}"
+        )
 
     provider = config.providers[provider_name]
     model = model_override or model_from_spec or provider.default_model
     api_key = get_api_key(provider_name, provider.api_key)
-    return ResolvedTarget(provider_name=provider_name, provider=provider, model=model, api_key=api_key)
+    return ResolvedTarget(
+        provider_name=provider_name, provider=provider, model=model, api_key=api_key
+    )
 
 
 def resolve_target(
@@ -103,7 +105,7 @@ def resolve_target(
         if config.default_provider is None:
             raise ValueError(
                 "No --provider given and no default_provider set in config.\n"
-                f"Run `pass-analysis-lm config init` to create a starter config."
+                "Run `pass-analysis-lm config init` to create a starter config."
             )
         spec = config.default_provider
     return parse_provider_spec(spec, config, model_override)
