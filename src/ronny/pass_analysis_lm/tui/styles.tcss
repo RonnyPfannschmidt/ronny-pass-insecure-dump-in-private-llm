@@ -20,18 +20,19 @@ RiskWarningScreen {
     align-horizontal: center;
 }
 
-Screen {
-    layout: grid;
-    grid-columns: 1fr 2fr;
-}
-
-#right-panel {
-    layout: vertical;
+#main-grid {
+    layout: horizontal;
 }
 
 EntryTree {
     height: 100%;
+    width: 1fr;
     border: round blue;
+}
+
+#right-panel {
+    width: 2fr;
+    layout: vertical;
 }
 
 EntryContentViewer {

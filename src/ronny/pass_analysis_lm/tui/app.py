@@ -36,9 +36,7 @@ class RiskWarningScreen(Screen[bool]):
         with Container(id="warning-box"):
             yield RichLog(id="warning-log")
         with Container(id="buttons"):
-            yield Button(
-                "I understand, continue", id="continue", variant="primary"
-            )
+            yield Button("I understand, continue", id="continue", variant="primary")
             yield Button("Cancel", id="cancel", variant="warning")
 
     def on_mount(self) -> None:
@@ -80,19 +78,18 @@ class PassAnalysisApp(App[None]):
     def compose(self) -> ComposeResult:
         yield Header()
         self._tree = EntryTree(self.store_dir or get_store_dir())
-        yield self._tree
-        with Container(id="right-panel"):
-            yield EntryContentViewer(self._tree)
-            yield ResultsPanel()
+        with Container(id="main-grid"):
+            yield self._tree
+            with Container(id="right-panel"):
+                yield EntryContentViewer(self._tree)
+                yield ResultsPanel()
         yield Footer()
 
     def on_mount(self) -> None:
         self._content_viewer = self.query_one(EntryContentViewer)
         self._results = self.query_one(ResultsPanel)
 
-    def on_tree_node_selected(
-        self, event: EntryTree.NodeSelected[str]
-    ) -> None:
+    def on_tree_node_selected(self, event: EntryTree.NodeSelected[str]) -> None:
         node = event.node
         if node.children:
             return
@@ -173,18 +170,14 @@ class PassAnalysisApp(App[None]):
             for name in names:
                 try:
                     content = await show_entry(name)
-                    entries.append(
-                        PassEntry(name=name, plaintext=SecretStr(content))
-                    )
+                    entries.append(PassEntry(name=name, plaintext=SecretStr(content)))
                 except Exception as exc:
                     self._results.write(
                         Text(f"Error loading {name}: {exc}", style="red")
                     )
 
             if not entries:
-                self._results.write(
-                    Text("No entries to analyze", style="yellow")
-                )
+                self._results.write(Text("No entries to analyze", style="yellow"))
                 return
 
             batch_size = 10
@@ -196,8 +189,6 @@ class PassAnalysisApp(App[None]):
                     for ef in findings:
                         self._results.add_finding(ef.entry_name, ef.findings)
                 except Exception as exc:
-                    self._results.write(
-                        Text(f"Analysis error: {exc}", style="red")
-                    )
+                    self._results.write(Text(f"Analysis error: {exc}", style="red"))
 
         self.run_worker(do_analysis(), thread=False)
