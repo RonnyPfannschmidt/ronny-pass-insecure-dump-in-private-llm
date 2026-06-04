@@ -10,7 +10,6 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from ronny.pass_analysis_lm.analysis import analyse_entry, make_agent
 from ronny.pass_analysis_lm.config import (
     ResolvedTarget,
     config_path,
@@ -78,6 +77,8 @@ def main() -> None:
 )
 def run_cmd(store_dir: Path | None, provider: str | None, model: str | None, yes: bool) -> None:
     """Decrypt the pass store and analyse every entry with the configured LLM."""
+    from ronny.pass_analysis_lm.analysis import make_agent, analyse_entry  # noqa: PLC0415
+
     console.print(Panel(_RISK_WARNING, border_style="red"))
 
     if not yes:
