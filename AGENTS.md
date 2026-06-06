@@ -22,9 +22,7 @@ Analyze a [pass](https://www.passwordstore.org/) password store using a self-hos
 ## Commands
 
 ```
-uv run ruff check src/      # lint
-uv run ruff format src/     # format
-uv run mypy src/            # type check
+pre-commit run -a           # linting and typechecking
 uv run pytest tests/        # tests
 ```
 
