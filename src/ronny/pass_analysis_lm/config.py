@@ -12,8 +12,11 @@ from pydantic import BaseModel, Field, SecretStr
 
 from ronny.pass_analysis_lm.secrets import get_api_key
 
-_APP = "pass-analysis-lm"
-_AUTHOR = "ronny"
+_DIRS = platformdirs.PlatformDirs(
+    appname="pass-analysis-lm",
+    appauthor="ronny",
+    ensure_exists=True,
+)
 
 _EXAMPLE_CONFIG = """\
 # pass-analysis-lm configuration
@@ -128,14 +131,13 @@ async def fetch_models(target: ResolvedTarget) -> list[str]:
 
 
 def config_path() -> Path:
-    return Path(platformdirs.user_config_dir(_APP, _AUTHOR)) / "config.toml"
+    return Path(_DIRS.user_config_dir) / "config.toml"
 
 
 def load_config() -> AppConfig:
     path = config_path()
     if not path.exists():
         return AppConfig()
-    
 
     with path.open("rb") as f:
         data = tomllib.load(f)
@@ -144,6 +146,5 @@ def load_config() -> AppConfig:
 
 def write_example_config() -> Path:
     path = config_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(_EXAMPLE_CONFIG)
     return path
