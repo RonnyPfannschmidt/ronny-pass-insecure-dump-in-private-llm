@@ -12,10 +12,6 @@ from textual.widgets._tree import TreeNode
 from ronny.pass_analysis_lm.store import Store
 
 
-def _mask(value: str) -> str:
-    return "•" * max(len(value), 1)
-
-
 def _parse_entry_content(content: str) -> list[tuple[str, str]]:
     """Parse entry content into (label, value) pairs.
 
@@ -90,7 +86,7 @@ class EntryViewPanel(DataTable[str]):
             if label == "" and value == "":
                 self.add_row("", "")
                 continue
-            display = value if revealed else _mask(value)
+            display = value if revealed else "•••"
             self.add_row(label, display)
 
     def write(self, text: Text) -> None:
