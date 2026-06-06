@@ -46,6 +46,7 @@ class EntryViewPanel(DataTable[str]):
 
     def __init__(self, tree: EntryTree | None = None) -> None:
         super().__init__(id="entry-table")
+        self.show_header = False
         self._tree = tree
         self._content_cache: dict[str, str] = {}
         self._current_name: str | None = None
