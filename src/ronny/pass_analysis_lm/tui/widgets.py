@@ -6,8 +6,10 @@ import re
 from pathlib import Path
 
 from rich.text import Text
-from textual.widgets import RichLog, Tree
+from textual.widgets import DataTable, RichLog, Tree
 from textual.widgets._tree import TreeNode
+
+from ronny.pass_analysis_lm.store import Store
 
 
 def _mask(value: str) -> str:
@@ -37,6 +39,79 @@ def _parse_entry_content(content: str) -> list[tuple[str, str]]:
     return result
 
 
+class EntryViewPanel(DataTable[str]):
+    """DataTable subclass that renders secret fields with a border title."""
+
+    DEFAULT_CSS_PATH = Path(__file__).parent / "styles.tcss"
+
+    def __init__(self, tree: EntryTree | None = None) -> None:
+        super().__init__(id="entry-table")
+        self._tree = tree
+        self._content_cache: dict[str, str] = {}
+        self._current_name: str | None = None
+        self._revealed: str | None = None
+
+    @property
+    def is_revealed(self) -> bool:
+        return self._revealed is not None
+
+    def _get_current_name(self) -> str | None:
+        if self._tree is None:
+            return None
+        node = self._tree.cursor_node
+        if node is None or node.children:
+            return None
+        return self._tree._node_path(node)
+
+    def show_entry(self, name: str, content: str) -> None:
+        self._current_name = name
+        self._content_cache[name] = content
+        self._revealed = None
+        self._render_table(name, content, False)
+
+    def toggle_reveal(self) -> None:
+        name = self._current_name
+        if name is None:
+            return
+        self._revealed = name if self._revealed != name else None
+        content = self._content_cache.get(name, "")
+        self._render_table(name, content, self._revealed == name)
+
+    def _render_table(self, name: str, content: str, revealed: bool) -> None:
+        self.border_title = name
+        super().clear(columns=True)
+        self.add_columns("Field", "Value")
+        pairs = _parse_entry_content(content)
+        if not pairs:
+            self.add_row("", "(empty entry)")
+            return
+        for label, value in pairs:
+            if label == "" and value == "":
+                self.add_row("", "")
+                continue
+            display = value if revealed else _mask(value)
+            self.add_row(label, display)
+        if not revealed:
+            self.add_row("", "[R]eveal")
+
+    def write(self, text: Text) -> None:
+        """Compat shim — used by app.py for loading/error messages."""
+        self.border_title = ""
+        super().clear(columns=True)
+        self.add_columns("")
+        self.add_row(str(text))
+
+    def clear(self) -> None:  # type: ignore[override]
+        """Clear the display."""
+        super().clear(columns=True)
+        self.border_title = ""
+
+    def _masked_render(self, name: str, content: str, revealed: bool) -> None:
+        """Compat shim — used by app.py for cached re-render."""
+        self._current_name = name
+        self._render_table(name, content, revealed)
+
+
 class EntryTree(Tree[str]):
     """Tree view of pass store entries — only leaf nodes are selectable."""
 
@@ -44,9 +119,10 @@ class EntryTree(Tree[str]):
 
     DEFAULT_CSS_PATH = Path(__file__).parent / "styles.tcss"
 
-    def __init__(self, store_dir: Path) -> None:
+    def __init__(self, store: Store) -> None:
         super().__init__("", id="entries")
-        self.store_dir = store_dir
+        self.show_root = False
+        self._store = store
 
     def on_mount(self) -> None:
         self._populate()
@@ -54,9 +130,8 @@ class EntryTree(Tree[str]):
 
     def _populate(self) -> None:
         root = self.root
-        for gpg_path in self.store_dir.rglob("*.gpg"):
-            entry_name = str(gpg_path.relative_to(self.store_dir).with_suffix(""))
-            parts = entry_name.split("/")
+        for name in self._store.list_entry_names():
+            parts = name.split("/")
             node = root
             for part in parts[:-1]:
                 found = None
@@ -86,55 +161,15 @@ class EntryTree(Tree[str]):
             return []
         return [self._node_path(node)]
 
-
-class EntryContentViewer(RichLog):
-    """Shows the content of the selected entry, masked by default."""
-
-    DEFAULT_CSS_PATH = Path(__file__).parent / "styles.tcss"
-
-    def __init__(self, tree: EntryTree | None = None) -> None:
-        super().__init__()
-        self._tree = tree
-        self._content_cache: dict[str, str] = {}
-        self._revealed: dict[str, bool] = {}
-
-    def _get_current_name(self) -> str | None:
-        if self._tree is None:
-            return None
-        node = self._tree.cursor_node
-        if node is None or node.children:
-            return None
-        return self._tree._node_path(node)
-
-    def show_entry(self, name: str, content: str) -> None:
-        self._content_cache[name] = content
-        revealed = self._revealed.get(name, False)
-        self._masked_render(name, content, revealed)
-
-    def toggle_reveal(self) -> None:
-        name = self._get_current_name()
-        if name is None:
-            return
-        self._revealed[name] = not self._revealed.get(name, False)
-        content = self._content_cache.get(name, "")
-        self._masked_render(name, content, self._revealed[name])
-
-    def _masked_render(self, name: str, content: str, revealed: bool) -> None:
-        self.clear()
-        pairs = _parse_entry_content(content)
-        if not pairs:
-            self.write(Text("(empty entry)", style="gray"))
-            return
-
-        self.write(Text(f"=== {name} ===", style="bold cyan"))
-        for label, value in pairs:
-            if label == "" and value == "":
-                self.write("")
-                continue
-            display = value if revealed else _mask(value)
-            self.write(Text(f"{label}: {display}"))
-        if not revealed:
-            self.write(Text("[R]eveal", style="dim italic"))
+    def _find_first_leaf(self, node: TreeNode[str]) -> TreeNode[str] | None:
+        """Find the first leaf node in the subtree rooted at node."""
+        if not node.children:
+            return node
+        for child in node.children:
+            leaf = self._find_first_leaf(child)
+            if leaf is not None:
+                return leaf
+        return None
 
 
 class ResultsPanel(RichLog):

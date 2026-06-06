@@ -36,8 +36,10 @@ tui = [
 [dependency-groups]
 dev = [
   "pytest>=8.0",
+  "pytest-asyncio>=0.24",
   "ruff>=0.4",
   "mypy>=1.10",
+  "textual>=1.0",
 ]
 
 [project.scripts]
@@ -66,3 +68,4 @@ mypy_path = "src"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_mode = "auto"

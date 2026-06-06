@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import click
@@ -24,10 +24,9 @@ from ronny.pass_analysis_lm.config import (
 from ronny.pass_analysis_lm.constants import _RISK_WARNING
 from ronny.pass_analysis_lm.secrets import delete_api_key, set_api_key
 from ronny.pass_analysis_lm.store import (
+    GpgStore,
     PassEntry,
     get_store_dir,
-    list_entry_names,
-    show_entry,
 )
 
 console = Console()
@@ -66,9 +65,12 @@ def main() -> None:
 # run
 # ---------------------------------------------------------------------------
 
+
 @main.command("run")
 @common_options
-def run_cmd(store_dir: Path | None, provider: str | None, model: str | None, yes: bool) -> None:
+def run_cmd(
+    store_dir: Path | None, provider: str | None, model: str | None, yes: bool
+) -> None:
     """Decrypt the pass store and analyse every entry with the configured LLM."""
     console.print(Panel(_RISK_WARNING, border_style="red"))
 
@@ -100,9 +102,10 @@ async def _decrypt(
     sem: asyncio.Semaphore,
     progress: Progress,
     task: object,
+    store: GpgStore,
 ) -> PassEntry:
     async with sem:
-        entry = PassEntry(name=name, plaintext=await show_entry(name))
+        entry = PassEntry(name=name, plaintext=await store.show_entry(name))
         progress.advance(task)
         return entry
 
@@ -116,14 +119,17 @@ async def _run(store_dir: Path, target: ResolvedTarget) -> None:
     agent = make_agent(target)
     console.print(f"[bold]Store:[/bold] {store_dir}")
 
-    names = list_entry_names(store_dir)
+    store = GpgStore(store_dir)
+    names = store.list_entry_names()
     console.print(f"Found [bold]{len(names)}[/bold] entries.\n")
 
     sem = asyncio.Semaphore(_DECRYPT_CONCURRENCY)
     with Progress(console=console) as progress:
         task = progress.add_task("Decrypting entries…", total=len(names))
         entries: list[PassEntry] = list(
-            await asyncio.gather(*[_decrypt(n, sem, progress, task) for n in names])
+            await asyncio.gather(
+                *[_decrypt(n, sem, progress, task, store) for n in names]
+            )
         )
 
     with Progress(console=console) as progress:
@@ -139,6 +145,7 @@ async def _run(store_dir: Path, target: ResolvedTarget) -> None:
 # ---------------------------------------------------------------------------
 # config subcommand group
 # ---------------------------------------------------------------------------
+
 
 @main.group("config")
 def config_group() -> None:
@@ -169,7 +176,9 @@ def config_list_providers() -> None:
     """List configured providers."""
     config = load_config()
     if not config.providers:
-        console.print("[yellow]No providers configured.[/yellow] Run `config init` first.")
+        console.print(
+            "[yellow]No providers configured.[/yellow] Run `config init` first."
+        )
         return
     table = Table("Name", "Base URL", "Default model", "Pinned models")
     for name, prov in config.providers.items():
@@ -213,7 +222,9 @@ def config_list_models(provider_name: str) -> None:
 
 @config_group.command("set-key")
 @click.argument("provider_name")
-@click.option("--key", "api_key", default=None, help="API key value (prompted if omitted).")
+@click.option(
+    "--key", "api_key", default=None, help="API key value (prompted if omitted)."
+)
 def config_set_key(provider_name: str, api_key: str | None) -> None:
     """Store an API key for PROVIDER_NAME in the system keyring."""
     config = load_config()
@@ -236,16 +247,21 @@ def config_delete_key(provider_name: str) -> None:
         delete_api_key(provider_name)
     except KeyError as exc:
         raise click.ClickException(str(exc)) from exc
-    console.print(f"[green]Key removed from keyring for provider:[/green] {provider_name}")
+    console.print(
+        f"[green]Key removed from keyring for provider:[/green] {provider_name}"
+    )
 
 
 # ---------------------------------------------------------------------------
 # tui
 # ---------------------------------------------------------------------------
 
+
 @main.command("tui")
 @common_options
-def tui_cmd(store_dir: Path | None, provider: str | None, model: str | None, yes: bool) -> None:
+def tui_cmd(
+    store_dir: Path | None, provider: str | None, model: str | None, yes: bool
+) -> None:
     """Launch the interactive TUI for pass store analysis."""
     try:
         from ronny.pass_analysis_lm.tui import PassAnalysisApp

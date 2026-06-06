@@ -35,10 +35,9 @@ EntryTree {
     layout: vertical;
 }
 
-EntryContentViewer {
+EntryViewPanel {
     height: 50%;
     border: round blue;
-    padding: 1;
 }
 
 ResultsPanel {

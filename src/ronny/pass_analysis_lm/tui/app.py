@@ -15,14 +15,14 @@ from ronny.pass_analysis_lm.analysis import analyse_batch, make_agent
 from ronny.pass_analysis_lm.config import load_config, resolve_target
 from ronny.pass_analysis_lm.constants import _RISK_WARNING
 from ronny.pass_analysis_lm.store import (
+    GpgStore,
     PassEntry,
+    Store,
     get_store_dir,
-    list_entry_names,
-    show_entry,
 )
 from ronny.pass_analysis_lm.tui.widgets import (
-    EntryContentViewer,
     EntryTree,
+    EntryViewPanel,
     ResultsPanel,
 )
 
@@ -64,32 +64,44 @@ class PassAnalysisApp(App[None]):
 
     def __init__(
         self,
+        store: Store | None = None,
         store_dir: Path | None = None,
         provider: str | None = None,
         model: str | None = None,
         yes: bool = False,
     ) -> None:
         super().__init__()
-        self.store_dir = store_dir
+        self._store = store or GpgStore(store_dir or get_store_dir())
         self.provider = provider
         self.model = model
         self._risk_acknowledged = yes
 
     def compose(self) -> ComposeResult:
         yield Header()
-        self._tree = EntryTree(self.store_dir or get_store_dir())
+        self._tree = EntryTree(self._store)
         with Container(id="main-grid"):
             yield self._tree
             with Container(id="right-panel"):
-                yield EntryContentViewer(self._tree)
+                yield EntryViewPanel(self._tree)
                 yield ResultsPanel()
         yield Footer()
 
     def on_mount(self) -> None:
-        self._content_viewer = self.query_one(EntryContentViewer)
+        self._content_viewer = self.query_one(EntryViewPanel)
         self._results = self.query_one(ResultsPanel)
+        self.call_later(self._initialize_cursor)
 
-    def on_tree_node_selected(self, event: EntryTree.NodeSelected[str]) -> None:
+    def _initialize_cursor(self) -> None:
+        cursor = self._tree.cursor_node
+        if cursor is not None and not cursor.children and self._tree._node_path(cursor):
+            return
+        for child in self._tree.root.children:
+            leaf = self._tree._find_first_leaf(child)
+            if leaf is not None:
+                self._tree.move_cursor(leaf)
+                break
+
+    def on_tree_node_highlighted(self, event: EntryTree.NodeHighlighted[str]) -> None:
         node = event.node
         if node.children:
             return
@@ -97,10 +109,10 @@ class PassAnalysisApp(App[None]):
         self._load_entry(name)
 
     def _load_entry(self, name: str) -> None:
+        self._content_viewer._revealed = None
         if name in self._content_viewer._content_cache:
-            revealed = self._content_viewer._revealed.get(name, False)
             self._content_viewer._masked_render(
-                name, self._content_viewer._content_cache[name], revealed
+                name, self._content_viewer._content_cache[name], False
             )
         else:
             self._fetch_entry(name)
@@ -111,8 +123,9 @@ class PassAnalysisApp(App[None]):
 
         async def fetch_and_show() -> None:
             try:
-                content = await show_entry(name)
-                self._content_viewer.show_entry(name, content)
+                content = await self._store.show_entry(name)
+                if name not in self._content_viewer._content_cache:
+                    self._content_viewer.show_entry(name, content)
             except Exception as exc:
                 self._content_viewer.clear()
                 self._content_viewer.write(Text(f"Error: {exc}", style="red"))
@@ -146,7 +159,7 @@ class PassAnalysisApp(App[None]):
                 return
             names: list[str] = []
             if mode == "all":
-                names = list_entry_names(self._tree.store_dir)
+                names = self._store.list_entry_names()
             self._run_analysis(names)
 
         self.run_worker(check_and_run(), thread=False)
@@ -169,7 +182,7 @@ class PassAnalysisApp(App[None]):
 
             for name in names:
                 try:
-                    content = await show_entry(name)
+                    content = await self._store.show_entry(name)
                     entries.append(PassEntry(name=name, plaintext=SecretStr(content)))
                 except Exception as exc:
                     self._results.write(
