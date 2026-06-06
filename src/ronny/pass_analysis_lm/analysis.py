@@ -2,16 +2,8 @@
 
 from __future__ import annotations
 
-import uuid
-
 from pydantic import BaseModel
 from pydantic_ai import Agent
-from pydantic_ai.messages import (
-    ModelRequest,
-    ModelResponse,
-    ToolCallPart,
-    ToolReturnPart,
-)
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
@@ -60,26 +52,3 @@ async def analyse_batch(
     lines = [f"=== Entry: {name} ===\n{plaintext}" for name, plaintext in entries]
     result = await agent.run("\n\n".join(lines))
     return result.output.entries
-
-
-def _fake_retrieve_history(entry_name: str, plaintext: str) -> list:
-    tool_call_id = str(uuid.uuid4())
-    response = ModelResponse(
-        parts=[
-            ToolCallPart(
-                tool_name="get_password_entry",
-                tool_call_id=tool_call_id,
-                args=f"{entry_name}",
-            )
-        ],
-    )
-    request = ModelRequest(
-        parts=[
-            ToolReturnPart(
-                tool_name="get_password_entry",
-                tool_call_id=tool_call_id,
-                content=plaintext,
-            )
-        ],
-    )
-    return [response, request]

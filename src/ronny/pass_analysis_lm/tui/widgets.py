@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from pydantic import SecretStr
 from rich.text import Text
 from textual.widgets import DataTable, RichLog, Tree
 from textual.widgets._tree import TreeNode
@@ -15,13 +16,14 @@ MASK = "•••"
 LOCK_ICON = ":lock:"
 
 
-def _parse_entry_content(content: str) -> list[tuple[str, str]]:
+def _parse_entry_content(content: SecretStr) -> list[tuple[str, str]]:
     """Parse entry content into (label, value) pairs.
 
     First line is the password. Subsequent lines are key: value pairs.
     Blank lines are preserved as-is. Whitespace is not stripped from values.
     """
-    lines = content.splitlines()
+    content_str = content.get_secret_value()
+    lines = content_str.splitlines()
     if not lines:
         return []
 
@@ -47,7 +49,7 @@ class EntryViewPanel(DataTable[str]):
         super().__init__(id="entry-table")
         self.show_header = False
         self._tree = tree
-        self._content_cache: dict[str, str] = {}
+        self._content_cache: dict[str, SecretStr] = {}
         self._current_name: str | None = None
         self._revealed: str | None = None
 
@@ -63,7 +65,7 @@ class EntryViewPanel(DataTable[str]):
             return None
         return self._tree._node_path(node)
 
-    def show_entry(self, name: str, content: str) -> None:
+    def show_entry(self, name: str, content: SecretStr) -> None:
         self._current_name = name
         self._content_cache[name] = content
         self._revealed = None
@@ -74,10 +76,10 @@ class EntryViewPanel(DataTable[str]):
         if name is None:
             return
         self._revealed = name if self._revealed != name else None
-        content = self._content_cache.get(name, "")
+        content = self._content_cache.get(name, SecretStr(""))
         self._render_table(name, content, self._revealed == name)
 
-    def _render_table(self, name: str, content: str, revealed: bool) -> None:
+    def _render_table(self, name: str, content: SecretStr, revealed: bool) -> None:
         self.border_title = name
         super().clear(columns=True)
         self.add_columns("Field", "Value")
@@ -104,7 +106,7 @@ class EntryViewPanel(DataTable[str]):
         super().clear(columns=True)
         self.border_title = ""
 
-    def _masked_render(self, name: str, content: str, revealed: bool) -> None:
+    def _masked_render(self, name: str, content: SecretStr, revealed: bool) -> None:
         """Compat shim — used by app.py for cached re-render."""
         self._current_name = name
         self._render_table(name, content, revealed)

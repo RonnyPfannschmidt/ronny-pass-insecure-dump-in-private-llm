@@ -27,7 +27,7 @@ class Store(ABC):
     def list_entry_names(self) -> list[str]: ...
 
     @abstractmethod
-    async def show_entry(self, name: str) -> str: ...
+    async def show_entry(self, name: str) -> SecretStr: ...
 
 
 class GpgStore(Store):
@@ -42,7 +42,7 @@ class GpgStore(Store):
             for p in self.store_dir.rglob("*.gpg")
         )
 
-    async def show_entry(self, name: str) -> str:
+    async def show_entry(self, name: str) -> SecretStr:
         proc = await asyncio.create_subprocess_exec(
             "pass",
             "show",
@@ -55,7 +55,7 @@ class GpgStore(Store):
             raise RuntimeError(
                 f"pass show {name!r} failed with exit code {proc.returncode}"
             )
-        return stdout.decode()
+        return SecretStr(stdout.decode())
 
 
 class InMemoryStore(Store):
@@ -67,7 +67,7 @@ class InMemoryStore(Store):
     def list_entry_names(self) -> list[str]:
         return sorted(self._entries)
 
-    async def show_entry(self, name: str) -> str:
+    async def show_entry(self, name: str) -> SecretStr:
         if name not in self._entries:
             raise KeyError(name)
-        return self._entries[name]
+        return SecretStr(self._entries[name])

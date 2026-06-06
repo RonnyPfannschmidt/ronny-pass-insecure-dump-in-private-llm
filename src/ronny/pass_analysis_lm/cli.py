@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import click
+import rich
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress
@@ -105,7 +106,7 @@ async def _decrypt(
     name: str,
     sem: asyncio.Semaphore,
     progress: Progress,
-    task: object,
+    task: rich.progress.TaskID,
     store: GpgStore,
 ) -> PassEntry:
     async with sem:

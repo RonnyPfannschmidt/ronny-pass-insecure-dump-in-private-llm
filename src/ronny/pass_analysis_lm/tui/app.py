@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import SecretStr
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Container
@@ -183,7 +182,7 @@ class PassAnalysisApp(App[None]):
             for name in names:
                 try:
                     content = await self._store.show_entry(name)
-                    entries.append(PassEntry(name=name, plaintext=SecretStr(content)))
+                    entries.append(PassEntry(name=name, plaintext=(content)))
                 except Exception as exc:
                     self._results.write(
                         Text(f"Error loading {name}: {exc}", style="red")
