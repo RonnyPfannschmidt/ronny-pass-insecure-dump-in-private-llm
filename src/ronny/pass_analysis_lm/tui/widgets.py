@@ -26,7 +26,7 @@ def _parse_entry_content(content: str) -> list[tuple[str, str]]:
     if not lines:
         return []
 
-    result: list[tuple[str, str]] = [("password", lines[0])]
+    result: list[tuple[str, str]] = [(":lock:", lines[0])]
     for line in lines[1:]:
         if not line:
             result.append(("", ""))
