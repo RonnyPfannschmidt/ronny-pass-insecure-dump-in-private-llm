@@ -11,7 +11,9 @@ from ronny.pass_analysis_lm.analysis import _fake_retrieve_history
 
 
 def test_fake_retrieve_history_structure() -> None:
-    history = _fake_retrieve_history("email/gmail", "password123\nuser: me@example.com\n")
+    history = _fake_retrieve_history(
+        "email/gmail", "password123\nuser: me@example.com\n"
+    )
     assert len(history) == 2
 
     response, request = history

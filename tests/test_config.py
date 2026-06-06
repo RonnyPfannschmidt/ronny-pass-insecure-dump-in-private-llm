@@ -42,7 +42,9 @@ def test_provider_slash_model_with_slash_in_model_name() -> None:
 
 
 def test_model_override_wins_over_spec() -> None:
-    t = parse_provider_spec("vllm-local/qwen/Qwen2.5-72B-Instruct", _config(), "qwen/Qwen2.5-7B-Instruct")
+    t = parse_provider_spec(
+        "vllm-local/qwen/Qwen2.5-72B-Instruct", _config(), "qwen/Qwen2.5-7B-Instruct"
+    )
     assert t.model == "qwen/Qwen2.5-7B-Instruct"
 
 
@@ -57,6 +59,10 @@ def test_resolve_target_uses_default_provider() -> None:
 
 
 def test_resolve_target_no_default_raises() -> None:
-    config = AppConfig(providers={"x": ProviderConfig(base_url="http://x", default_model="m")})
+    config = AppConfig(
+        providers={
+            "x": ProviderConfig(base_url="http://x", default_model="m"),
+        }
+    )
     with pytest.raises(ValueError, match="default_provider"):
         resolve_target(None, config)

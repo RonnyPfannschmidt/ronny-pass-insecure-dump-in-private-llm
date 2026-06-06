@@ -14,6 +14,7 @@ from ronny.pass_analysis_lm.store import Store
 MASK = "•••"
 LOCK_ICON = ":lock:"
 
+
 def _parse_entry_content(content: str) -> list[tuple[str, str]]:
     """Parse entry content into (label, value) pairs.
 

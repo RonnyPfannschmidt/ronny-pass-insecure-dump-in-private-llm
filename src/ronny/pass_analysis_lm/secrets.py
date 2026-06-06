@@ -9,7 +9,10 @@ _SERVICE = "pass-analysis-lm"
 
 
 def get_api_key(provider_name: str, config_value: SecretStr | None) -> SecretStr | None:
-    """Return the keyring-stored key for provider_name, or config_value if none is stored."""
+    """return api key
+    
+    tries keyring first, falls back on config value
+    """
     stored = keyring.get_password(_SERVICE, provider_name)
     if stored is not None:
         return SecretStr(stored)
