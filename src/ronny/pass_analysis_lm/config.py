@@ -135,16 +135,11 @@ def load_config() -> AppConfig:
     path = config_path()
     if not path.exists():
         return AppConfig()
+    
+
     with path.open("rb") as f:
         data = tomllib.load(f)
-    providers = {
-        name: ProviderConfig(**values)
-        for name, values in data.get("providers", {}).items()
-    }
-    return AppConfig(
-        default_provider=data.get("default_provider"),
-        providers=providers,
-    )
+    return AppConfig.model_validate(data)
 
 
 def write_example_config() -> Path:
