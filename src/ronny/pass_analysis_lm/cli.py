@@ -268,7 +268,7 @@ def tui_cmd(
     except ImportError:
         raise click.ClickException(
             "textual not installed. Install with: uv sync --extra tui"
-        )
+        ) from None
 
     app = PassAnalysisApp(
         store_dir=store_dir,
