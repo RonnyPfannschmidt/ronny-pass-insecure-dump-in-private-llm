@@ -1,7 +1,13 @@
 """Tests for the message-history construction logic."""
 
+from pydantic_ai.messages import (
+    ModelRequest,
+    ModelResponse,
+    ToolCallPart,
+    ToolReturnPart,
+)
+
 from ronny.pass_analysis_lm.analysis import _fake_retrieve_history
-from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart, ToolReturnPart
 
 
 def test_fake_retrieve_history_structure() -> None:

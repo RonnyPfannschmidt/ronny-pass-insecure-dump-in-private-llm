@@ -6,7 +6,12 @@ from textual.widgets._tree import TreeNode
 
 from ronny.pass_analysis_lm.store import InMemoryStore
 from ronny.pass_analysis_lm.tui.app import PassAnalysisApp
-from ronny.pass_analysis_lm.tui.widgets import EntryTree, EntryViewPanel
+from ronny.pass_analysis_lm.tui.widgets import (
+    LOCK_ICON,
+    MASK,
+    EntryTree,
+    EntryViewPanel,
+)
 
 FAKE_ENTRIES = {
     "service/a": "secret-a\nuser: alice",
@@ -108,13 +113,13 @@ async def test_table_rows_are_masked_by_default() -> None:
         await _load(viewer, pilot, tree, "service/a")
 
         row_0 = viewer.get_row_at(0)
-        assert row_0[0] == "password"
-        assert row_0[1] == "\u2022" * 8
+        assert row_0[0] == LOCK_ICON
+        assert row_0[1] == MASK
         assert row_0[1] != "secret-a"
 
         row_1 = viewer.get_row_at(1)
         assert row_1[0] == "user"
 
         cell_1_1 = row_1[1]
-        assert cell_1_1 == "\u2022" * 5
+        assert cell_1_1 == MASK
         assert cell_1_1 != "alice"

@@ -11,6 +11,8 @@ from textual.widgets._tree import TreeNode
 
 from ronny.pass_analysis_lm.store import Store
 
+MASK = "•••"
+LOCK_ICON = ":lock:"
 
 def _parse_entry_content(content: str) -> list[tuple[str, str]]:
     """Parse entry content into (label, value) pairs.
@@ -22,7 +24,7 @@ def _parse_entry_content(content: str) -> list[tuple[str, str]]:
     if not lines:
         return []
 
-    result: list[tuple[str, str]] = [(":lock:", lines[0])]
+    result: list[tuple[str, str]] = [(LOCK_ICON, lines[0])]
     for line in lines[1:]:
         if not line:
             result.append(("", ""))
@@ -86,7 +88,7 @@ class EntryViewPanel(DataTable[str]):
             if label == "" and value == "":
                 self.add_row("", "")
                 continue
-            display = value if revealed else "•••"
+            display = value if revealed else MASK
             self.add_row(label, display)
 
     def write(self, text: Text) -> None:
@@ -137,7 +139,7 @@ class EntryTree(Tree[str]):
                 if found is None:
                     found = node.add(part)
                 node = found
-            node.add(parts[-1])
+            node.add(parts[-1], allow_expand=False)
 
     def _node_path(self, node: TreeNode[str]) -> str:
         """Build full entry name from node hierarchy."""

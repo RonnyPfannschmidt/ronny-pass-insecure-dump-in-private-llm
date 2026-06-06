@@ -8,7 +8,6 @@ from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.messages import (
     ModelRequest,
-    ModelRequestPart,
     ModelResponse,
     ToolCallPart,
     ToolReturnPart,

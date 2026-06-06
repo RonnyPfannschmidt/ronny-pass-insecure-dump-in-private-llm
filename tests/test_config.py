@@ -1,7 +1,13 @@
 """Tests for provider/model resolution logic."""
 
 import pytest
-from ronny.pass_analysis_lm.config import AppConfig, ProviderConfig, parse_provider_spec, resolve_target
+
+from ronny.pass_analysis_lm.config import (
+    AppConfig,
+    ProviderConfig,
+    parse_provider_spec,
+    resolve_target,
+)
 
 
 def _config() -> AppConfig:
