@@ -1,5 +1,6 @@
 """Tests for provider/model resolution logic."""
 
+from pydantic import SecretStr
 import pytest
 
 from ronny.pass_analysis_lm.config import (
@@ -16,13 +17,13 @@ def _config() -> AppConfig:
         providers={
             "vllm-local": ProviderConfig(
                 base_url="http://192.168.1.100:8000/v1",
-                api_key="none",
+                api_key=SecretStr("none"),
                 default_model="qwen/Qwen2.5-72B-Instruct",
                 models=["qwen/Qwen2.5-72B-Instruct", "qwen/Qwen2.5-7B-Instruct"],
             ),
             "openai": ProviderConfig(
                 base_url="https://api.openai.com/v1",
-                api_key="sk-test",
+                api_key=SecretStr("sk-test"),
                 default_model="gpt-4o",
             ),
         },

@@ -61,7 +61,7 @@ class GpgStore(Store):
 class InMemoryStore(Store):
     """In-memory store for testing without GPG."""
 
-    def __init__(self, entries: dict[str, str]) -> None:
+    def __init__(self, entries: dict[str, SecretStr]) -> None:
         self._entries = dict(entries)
 
     def list_entry_names(self) -> list[str]:
@@ -70,4 +70,4 @@ class InMemoryStore(Store):
     async def show_entry(self, name: str) -> SecretStr:
         if name not in self._entries:
             raise KeyError(name)
-        return SecretStr(self._entries[name])
+        return self._entries[name]

@@ -1,7 +1,9 @@
 """Tests for the TUI widget behavior using an InMemoryStore."""
 
 from __future__ import annotations
+from typing import Any
 
+from pydantic import SecretStr
 from textual.widgets._tree import TreeNode
 
 from ronny.pass_analysis_lm.store import InMemoryStore
@@ -14,9 +16,9 @@ from ronny.pass_analysis_lm.tui.widgets import (
 )
 
 FAKE_ENTRIES = {
-    "service/a": "secret-a\nuser: alice",
-    "service/b": "secret-b\nuser: bob",
-    "service/c": "secret-c\nuser: carol",
+    "service/a": SecretStr("secret-a\nuser: alice"),
+    "service/b": SecretStr("secret-b\nuser: bob"),
+    "service/c": SecretStr("secret-c\nuser: carol"),
 }
 
 
@@ -35,7 +37,7 @@ def _find_leaf(tree: EntryTree, name: str) -> TreeNode[str] | None:
     return _search(tree.root)
 
 
-async def _load(viewer: EntryViewPanel, pilot, tree: EntryTree, name: str) -> None:
+async def _load(viewer: EntryViewPanel, pilot: Any, tree: EntryTree, name: str) -> None:
     """Position the tree cursor, then load an entry directly into the viewer."""
     leaf = _find_leaf(tree, name)
     if leaf is not None:
