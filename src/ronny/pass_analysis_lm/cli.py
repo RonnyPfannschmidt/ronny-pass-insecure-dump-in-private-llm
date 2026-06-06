@@ -30,29 +30,33 @@ from ronny.pass_analysis_lm.store import (
 )
 
 console = Console()
+store_dir_option = click.option(
+    "--store",
+    "store_dir",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Path to pass store.",
+)
+provider_option = click.option(
+    "--provider",
+    default=None,
+    metavar="NAME[/MODEL]",
+    help="Provider name from config, optionally with /MODEL to specify model.",
+)
+model_option = click.option("--model", default=None, help="Override the model name.")
+risk_option = click.option(
+    "--yolo",
+    is_flag=True,
+    default=False,
+    help="Skip the risk confirmation prompt.",
+)
 
 
 def common_options(f: Callable[..., Any]) -> Callable[..., Any]:
-    f = click.option(
-        "--store",
-        "store_dir",
-        type=click.Path(exists=True, file_okay=False, path_type=Path),
-        default=None,
-        help="Path to pass store.",
-    )(f)
-    f = click.option(
-        "--provider",
-        default=None,
-        metavar="NAME[/MODEL]",
-        help="Provider name from config.",
-    )(f)
-    f = click.option("--model", default=None, help="Override the model name.")(f)
-    f = click.option(
-        "--yes",
-        is_flag=True,
-        default=False,
-        help="Skip the risk confirmation prompt.",
-    )(f)
+    f = store_dir_option(f)
+    f = provider_option(f)
+    f = model_option(f)
+    f = risk_option(f)
     return f
 
 
@@ -69,12 +73,12 @@ def main() -> None:
 @main.command("run")
 @common_options
 def run_cmd(
-    store_dir: Path | None, provider: str | None, model: str | None, yes: bool
+    store_dir: Path | None, provider: str | None, model: str | None, yolo: bool
 ) -> None:
     """Decrypt the pass store and analyse every entry with the configured LLM."""
     console.print(Panel(_RISK_WARNING, border_style="red"))
 
-    if not yes:
+    if not yolo:
         click.confirm("I understand the risks and want to continue", abort=True)
 
     config = load_config()
@@ -260,7 +264,7 @@ def config_delete_key(provider_name: str) -> None:
 @main.command("tui")
 @common_options
 def tui_cmd(
-    store_dir: Path | None, provider: str | None, model: str | None, yes: bool
+    store_dir: Path | None, provider: str | None, model: str | None, yolo: bool
 ) -> None:
     """Launch the interactive TUI for pass store analysis."""
     try:
@@ -274,6 +278,6 @@ def tui_cmd(
         store_dir=store_dir,
         provider=provider,
         model=model,
-        yes=yes,
+        yolo=yolo,
     )
     app.run()

@@ -68,13 +68,13 @@ class PassAnalysisApp(App[None]):
         store_dir: Path | None = None,
         provider: str | None = None,
         model: str | None = None,
-        yes: bool = False,
+        yolo: bool = False,
     ) -> None:
         super().__init__()
         self._store = store or GpgStore(store_dir or get_store_dir())
         self.provider = provider
         self.model = model
-        self._risk_acknowledged = yes
+        self._risk_acknowledged = yolo
 
     def compose(self) -> ComposeResult:
         yield Header()

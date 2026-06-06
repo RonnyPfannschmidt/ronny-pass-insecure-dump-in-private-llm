@@ -47,7 +47,7 @@ async def _load(viewer: EntryViewPanel, pilot, tree: EntryTree, name: str) -> No
 async def test_cursor_navigation_updates_view() -> None:
     """Cursor movement should update the view to the entry under the cursor."""
     store = InMemoryStore(FAKE_ENTRIES)
-    app = PassAnalysisApp(store=store, yes=True)
+    app = PassAnalysisApp(store=store, yolo=True)
 
     async with app.run_test() as pilot:
         viewer = app.query_one(EntryViewPanel)
@@ -70,7 +70,7 @@ async def test_cursor_navigation_updates_view() -> None:
 async def test_reveal_and_switch_auto_hides() -> None:
     """Reveal entry A, switch to B — B should be masked."""
     store = InMemoryStore(FAKE_ENTRIES)
-    app = PassAnalysisApp(store=store, yes=True)
+    app = PassAnalysisApp(store=store, yolo=True)
 
     async with app.run_test() as pilot:
         viewer = app.query_one(EntryViewPanel)
@@ -104,7 +104,7 @@ async def test_reveal_and_switch_auto_hides() -> None:
 async def test_table_rows_are_masked_by_default() -> None:
     """New entries should render with masked values."""
     store = InMemoryStore(FAKE_ENTRIES)
-    app = PassAnalysisApp(store=store, yes=True)
+    app = PassAnalysisApp(store=store, yolo=True)
 
     async with app.run_test() as pilot:
         viewer = app.query_one(EntryViewPanel)
