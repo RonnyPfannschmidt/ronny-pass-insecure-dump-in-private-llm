@@ -1,4 +1,4 @@
-"""API key storage via the system keyring (GNOME Keyring / KWallet via secretstorage)."""
+"""API key storage via the system keyring"""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ _SERVICE = "pass-analysis-lm"
 
 def get_api_key(provider_name: str, config_value: SecretStr | None) -> SecretStr | None:
     """return api key
-    
+
     tries keyring first, falls back on config value
     """
     stored = keyring.get_password(_SERVICE, provider_name)
