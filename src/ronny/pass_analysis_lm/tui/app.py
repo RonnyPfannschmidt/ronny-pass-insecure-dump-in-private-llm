@@ -43,10 +43,7 @@ class RiskWarningScreen(Screen[bool]):
         log.write(Text(_RISK_WARNING, style="red"))
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "continue":
-            self.dismiss(True)
-        else:
-            self.dismiss(False)
+        self.dismiss(event.button.id == "continue")
 
 
 class PassAnalysisApp(App[None]):
