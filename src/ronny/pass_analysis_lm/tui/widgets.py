@@ -92,8 +92,6 @@ class EntryViewPanel(DataTable[str]):
                 continue
             display = value if revealed else _mask(value)
             self.add_row(label, display)
-        if not revealed:
-            self.add_row("", "[R]eveal")
 
     def write(self, text: Text) -> None:
         """Compat shim — used by app.py for loading/error messages."""
