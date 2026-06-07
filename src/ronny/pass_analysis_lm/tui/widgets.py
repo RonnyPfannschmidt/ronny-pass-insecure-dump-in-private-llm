@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
 
 from pydantic import SecretStr
 from rich.text import Text
@@ -43,7 +42,7 @@ def _parse_entry_content(content: SecretStr) -> list[tuple[str, str]]:
 class EntryViewPanel(DataTable[str]):
     """DataTable subclass that renders secret fields with a border title."""
 
-    DEFAULT_CSS_PATH = Path(__file__).parent / "styles.tcss"
+    CSS_PATH = "styles.tcss"
 
     def __init__(self, tree: EntryTree | None = None) -> None:
         super().__init__(id="entry-table")
@@ -117,7 +116,7 @@ class EntryTree(Tree[str]):
 
     ALLOW_SELECT = True
 
-    DEFAULT_CSS_PATH = Path(__file__).parent / "styles.tcss"
+    CSS_PATH = "styles.tcss"
 
     def __init__(self, store: Store) -> None:
         super().__init__("", id="entries")
@@ -175,7 +174,7 @@ class EntryTree(Tree[str]):
 class ResultsPanel(RichLog):
     """Displays LLM analysis results."""
 
-    DEFAULT_CSS_PATH = Path(__file__).parent / "styles.tcss"
+    CSS_PATH = "styles.tcss"
 
     def clear_results(self) -> None:
         self.clear()

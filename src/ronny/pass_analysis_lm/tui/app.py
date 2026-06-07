@@ -31,7 +31,7 @@ from ronny.pass_analysis_lm.tui.widgets import (
 class RiskWarningScreen(ModalScreen[bool]):
     """Modal dialog showing the security risk warning."""
 
-    CSS_PATH = Path(__file__).parent / "styles.tcss"
+    CSS_PATH = "styles.tcss"
 
     def compose(self) -> ComposeResult:
         yield Grid(
@@ -57,7 +57,7 @@ class RiskWarningScreen(ModalScreen[bool]):
 class PassAnalysisApp(App[None]):
     """Interactive TUI for pass store analysis."""
 
-    CSS_PATH = Path(__file__).parent / "styles.tcss"
+    CSS_PATH = "styles.tcss"
 
     BINDINGS = [
         ("a", "analyze_all", "Analyze All"),
