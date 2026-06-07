@@ -5,10 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from rich.text import Text
+from textual import work
 from textual.app import App, ComposeResult
-from textual.containers import Container
-from textual.screen import Screen
-from textual.widgets import Button, Footer, Header, RichLog
+from textual.containers import Container, Grid, Horizontal
+from textual.events import Key
+from textual.screen import ModalScreen
+from textual.widgets import Button, Footer, Header, Static
 
 from ronny.pass_analysis_lm.analysis import analyse_batch, make_agent
 from ronny.pass_analysis_lm.config import load_config, resolve_target
@@ -26,21 +28,27 @@ from ronny.pass_analysis_lm.tui.widgets import (
 )
 
 
-class RiskWarningScreen(Screen[bool]):
+class RiskWarningScreen(ModalScreen[bool]):
     """Modal dialog showing the security risk warning."""
 
     CSS_PATH = Path(__file__).parent / "styles.tcss"
 
     def compose(self) -> ComposeResult:
-        with Container(id="warning-box"):
-            yield RichLog(id="warning-log")
-        with Container(id="buttons"):
-            yield Button("I understand, continue", id="continue", variant="primary")
-            yield Button("Cancel", id="cancel", variant="warning")
+        yield Grid(
+            Static(Text.from_markup(_RISK_WARNING), id="warning-text"),
+            Horizontal(
+                Button("I understand, continue", id="continue", variant="primary"),
+                Button("Cancel", id="cancel", variant="warning"),
+                id="warning-buttons",
+            ),
+            id="warning-dialog",
+        )
 
-    def on_mount(self) -> None:
-        log = self.query_one("#warning-log", RichLog)
-        log.write(Text(_RISK_WARNING, style="red"))
+    def on_key(self, event: Key) -> None:
+        if event.key == "enter":
+            self.dismiss(True)
+        elif event.key == "escape":
+            self.dismiss(False)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         self.dismiss(event.button.id == "continue")
@@ -139,20 +147,25 @@ class PassAnalysisApp(App[None]):
             self._risk_acknowledged = True
         return result
 
-    def action_analyze_all(self) -> None:
-        self._run_analysis_mode("all")
+    @work
+    async def action_analyze_all(self) -> None:
+        await self._run_analysis_mode("all")
+        return None
 
-    def action_analyze_selected(self) -> None:
+    @work
+    async def action_analyze_selected(self) -> None:
         names = self._tree.get_selected_names()
         if not names:
             self.notify("No entries selected", severity="warning")
             return
-        self._run_analysis(names)
+        await self._run_analysis_mode("selected")
 
-    def _run_analysis_mode(self, mode: str) -> None:
+    async def _run_analysis_mode(self, mode: str) -> None:
+        if not await self._check_risk_warning():
+            return
+
         async def check_and_run() -> None:
-            if not await self._check_risk_warning():
-                return
+
             names: list[str] = []
             if mode == "all":
                 names = self._store.list_entry_names()

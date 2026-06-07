@@ -1,22 +1,22 @@
 RiskWarningScreen {
     align: center middle;
+    background: black 50%;
 }
 
-#warning-box {
+#warning-dialog {
+    layout: grid;
+    grid-rows: 1fr auto;
+    border: heavy red;
+    padding: 1 2;
     width: 70%;
     height: 70%;
-    border: thick red;
-    padding: 1;
 }
 
-#warning-log {
-    height: 100%;
+#warning-text {
+    text-opacity: 75%;
 }
 
-#buttons {
-    dock: bottom;
-    width: 70%;
-    margin: 1;
+#warning-buttons {
     align-horizontal: center;
 }
 
