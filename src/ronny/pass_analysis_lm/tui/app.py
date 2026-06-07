@@ -180,13 +180,13 @@ class PassAnalysisApp(App[None]):
         async def do_analysis() -> None:
             config = load_config()
             try:
-                target = resolve_target(self.provider, config, self.model)
+                pymodel = resolve_target(self.provider, config, self.model)
             except ValueError as exc:
                 self._results.write(Text(str(exc), style="red"))
                 self.notify(str(exc), severity="error")
                 return
 
-            agent = make_agent(target)
+            agent = make_agent(pymodel)
             entries: list[PassEntry] = []
 
             for name in names:

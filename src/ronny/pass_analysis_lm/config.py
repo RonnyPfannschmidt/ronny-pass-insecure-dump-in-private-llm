@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
 import platformdirs
 from pydantic import BaseModel, Field, SecretStr
+from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
 from ronny.pass_analysis_lm.secrets import get_api_key
 
@@ -66,24 +67,10 @@ class AppConfig(BaseModel):
     providers: dict[str, ProviderConfig] = Field(default_factory=dict)
 
 
-@dataclass
-class ResolvedTarget:
-    provider_name: str
-    provider: ProviderConfig
-    model: str
-    api_key: SecretStr | None
-
-
-def parse_provider_spec(
-    spec: str, config: AppConfig, model_override: str | None
-) -> ResolvedTarget:
-    """Parse 'name' or 'name/model' — the slash separates provider from model."""
-    if "/" in spec:
-        provider_name, model_from_spec = spec.split("/", 1)
-    else:
-        provider_name = spec
-        model_from_spec = None
-
+def model_from_config(
+    provider_name: str, config: AppConfig, model_override: str | None = None
+) -> OpenAIChatModel:
+    """Create an OpenAIModel from a provider config entry."""
     if provider_name not in config.providers:
         available = ", ".join(config.providers) or "(none configured)"
         raise ValueError(
@@ -91,19 +78,22 @@ def parse_provider_spec(
         )
 
     provider = config.providers[provider_name]
-    model = model_override or model_from_spec or provider.default_model
+    model_name = model_override or provider.default_model
     api_key = get_api_key(provider_name, provider.api_key)
-    return ResolvedTarget(
-        provider_name=provider_name, provider=provider, model=model, api_key=api_key
+
+    oai_provider = OpenAIProvider(
+        base_url=provider.base_url,
+        api_key=api_key.get_secret_value() if api_key is not None else None,
     )
+    return OpenAIChatModel(model_name=model_name, provider=oai_provider)
 
 
 def resolve_target(
     spec: str | None,
     config: AppConfig,
     model_override: str | None = None,
-) -> ResolvedTarget:
-    """Resolve a provider/model target from CLI input and loaded config."""
+) -> OpenAIChatModel:
+    """Resolve a provider/model spec to a pydantic-ai model instance."""
     if spec is None:
         if config.default_provider is None:
             raise ValueError(
@@ -111,16 +101,21 @@ def resolve_target(
                 "Run `pass-analysis-lm config init` to create a starter config."
             )
         spec = config.default_provider
-    return parse_provider_spec(spec, config, model_override)
+
+    provider_name = spec.split("/")[0]
+    return model_from_config(provider_name, config, model_override)
 
 
-async def fetch_models(target: ResolvedTarget) -> list[str]:
+async def fetch_models(provider_name: str, config: AppConfig) -> list[str]:
     """Fetch available model IDs from the provider's /models endpoint."""
+    provider = config.providers[provider_name]
+    api_key = get_api_key(provider_name, provider.api_key)
+
     headers = {}
-    if target.api_key is not None:
-        headers["Authorization"] = f"Bearer {target.api_key.get_secret_value()}"
+    if api_key is not None:
+        headers["Authorization"] = f"Bearer {api_key.get_secret_value()}"
     async with httpx.AsyncClient(
-        base_url=target.provider.base_url,
+        base_url=provider.base_url,
         headers=headers,
         timeout=10.0,
     ) as client:

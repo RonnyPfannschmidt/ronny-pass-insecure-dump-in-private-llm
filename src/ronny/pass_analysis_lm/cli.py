@@ -15,7 +15,6 @@ from rich.progress import Progress
 from rich.table import Table
 
 from ronny.pass_analysis_lm.config import (
-    ResolvedTarget,
     config_path,
     fetch_models,
     load_config,
@@ -84,18 +83,22 @@ def run_cmd(
 
     config = load_config()
     try:
-        target = resolve_target(provider, config, model)
+        pymodel = resolve_target(provider, config, model)
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
 
+    resolved_spec = provider or config.default_provider
+    assert resolved_spec is not None
+    provider_name = resolved_spec.split("/")[0]
+    prov = config.providers[provider_name]
     console.print(
-        f"\n[bold]Provider:[/bold] {target.provider_name}  "
-        f"[bold]Model:[/bold] {target.model}  "
-        f"[bold]Endpoint:[/bold] {target.provider.base_url}"
+        f"\n[bold]Provider:[/bold] {provider_name}  "
+        f"[bold]Model:[/bold] {pymodel.model_name}  "
+        f"[bold]Endpoint:[/bold] {prov.base_url}"
     )
 
     resolved_store = store_dir or get_store_dir()
-    asyncio.run(_run(resolved_store, target))
+    asyncio.run(_run(resolved_store, pymodel))
 
 
 _DECRYPT_CONCURRENCY = 8
@@ -115,13 +118,13 @@ async def _decrypt(
         return entry
 
 
-async def _run(store_dir: Path, target: ResolvedTarget) -> None:
+async def _run(store_dir: Path, pymodel: Any) -> None:
     from ronny.pass_analysis_lm.analysis import (  # noqa: PLC0415 E402
         analyse_batch,
         make_agent,
     )
 
-    agent = make_agent(target)
+    agent = make_agent(pymodel)
     console.print(f"[bold]Store:[/bold] {store_dir}")
 
     store = GpgStore(store_dir)
@@ -208,12 +211,12 @@ def config_list_models(provider_name: str) -> None:
             f"Provider {provider_name!r} not found. Available: {available}"
         )
     try:
-        target = resolve_target(provider_name, config)
+        resolve_target(provider_name, config)
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
 
     async def _fetch() -> list[str]:
-        return await fetch_models(target)
+        return await fetch_models(provider_name, config)
 
     try:
         models = asyncio.run(_fetch())

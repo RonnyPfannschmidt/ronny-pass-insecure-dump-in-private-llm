@@ -6,7 +6,7 @@ import pytest
 from ronny.pass_analysis_lm.config import (
     AppConfig,
     ProviderConfig,
-    parse_provider_spec,
+    model_from_config,
     resolve_target,
 )
 
@@ -31,32 +31,30 @@ def _config() -> AppConfig:
 
 
 def test_provider_only_uses_default_model() -> None:
-    t = parse_provider_spec("vllm-local", _config(), None)
-    assert t.provider_name == "vllm-local"
-    assert t.model == "qwen/Qwen2.5-72B-Instruct"
+    m = model_from_config("vllm-local", _config(), None)
+    assert m.model_name == "qwen/Qwen2.5-72B-Instruct"
 
 
 def test_provider_slash_model_with_slash_in_model_name() -> None:
-    t = parse_provider_spec("vllm-local/qwen/Qwen2.5-7B-Instruct", _config(), None)
-    assert t.provider_name == "vllm-local"
-    assert t.model == "qwen/Qwen2.5-7B-Instruct"
+    m = model_from_config("vllm-local", _config(), "qwen/Qwen2.5-7B-Instruct")
+    assert m.model_name == "qwen/Qwen2.5-7B-Instruct"
 
 
 def test_model_override_wins_over_spec() -> None:
-    t = parse_provider_spec(
-        "vllm-local/qwen/Qwen2.5-72B-Instruct", _config(), "qwen/Qwen2.5-7B-Instruct"
+    m = model_from_config(
+        "vllm-local", _config(), "qwen/Qwen2.5-7B-Instruct"
     )
-    assert t.model == "qwen/Qwen2.5-7B-Instruct"
+    assert m.model_name == "qwen/Qwen2.5-7B-Instruct"
 
 
 def test_unknown_provider_raises() -> None:
     with pytest.raises(ValueError, match="not found"):
-        parse_provider_spec("nonexistent", _config(), None)
+        model_from_config("nonexistent", _config(), None)
 
 
 def test_resolve_target_uses_default_provider() -> None:
-    t = resolve_target(None, _config())
-    assert t.provider_name == "vllm-local"
+    m = resolve_target(None, _config())
+    assert m.model_name == "qwen/Qwen2.5-72B-Instruct"
 
 
 def test_resolve_target_no_default_raises() -> None:

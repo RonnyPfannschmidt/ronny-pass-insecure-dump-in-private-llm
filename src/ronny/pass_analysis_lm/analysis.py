@@ -4,10 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.providers.openai import OpenAIProvider
-
-from ronny.pass_analysis_lm.config import ResolvedTarget
+from pydantic_ai.models import Model
 
 
 class EntryFinding(BaseModel):
@@ -34,14 +31,7 @@ Return results for every entry provided.
 """
 
 
-def make_agent(target: ResolvedTarget) -> Agent[None, BatchFindings]:
-    oai_provider = OpenAIProvider(
-        base_url=target.provider.base_url,
-        api_key=target.api_key.get_secret_value()
-        if target.api_key is not None
-        else None,
-    )
-    model = OpenAIModel(model_name=target.model, provider=oai_provider)
+def make_agent(model: Model) -> Agent[None, BatchFindings]:
     return Agent(model=model, system_prompt=_SYSTEM_PROMPT, output_type=BatchFindings)
 
 
