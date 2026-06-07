@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Analyze a pass password store using a self-hosted LLM"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 authors = [
   { name = "Ronny Pfannschmidt", email = "opensource@ronnypfannschmidt.de" },
 ]
@@ -62,7 +62,7 @@ target-version = "py311"
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.14"
 strict = true
 mypy_path = "src"
 
