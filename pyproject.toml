@@ -21,25 +21,25 @@ classifiers = [
   "Topic :: Utilities",
 ]
 dependencies = [
-  "click>=8.0",
-  "keyring>=25.0",
-  "platformdirs>=4.0",
-  "pydantic-ai>=0.0.20",
-  "rich>=13.0",
+  "click>=8.4.1",
+  "keyring>=25.7.0",
+  "platformdirs>=4.10.0",
+  "pydantic-ai>=1.106.0",
+  "rich>=15.0.0",
 ]
 
 [project.optional-dependencies]
 tui = [
-  "textual>=1.0",
+  "textual>=8.2.7",
 ]
 
 [dependency-groups]
 dev = [
-  "pytest>=8.0",
-  "pytest-asyncio>=0.24",
-  "ruff>=0.4",
-  "mypy>=1.10",
-  "textual>=1.0",
+  "pytest>=9.0.3",
+  "pytest-asyncio>=1.4.0",
+  "ruff>=0.15.16",
+  "mypy>=2.1.0",
+  "textual>=8.2.7",
 ]
 
 [project.scripts]
